@@ -1,0 +1,64 @@
+#!/usr/bin/perl
+#
+# (c) 2019 Vitaly Parnas <vp330@parnas.me>
+
+use strict;
+use warnings;
+use 5.010;
+
+(($ARGV[0]) && (-f $ARGV[0])) or die "Must specify config\n";
+
+my $BOOKMARK_NNN = 0;
+my $section = "";
+my $OUTPUT;
+my %cmd_templates = ();
+my %aliases = ();
+my $DEBUG = 0;
+
+while (<>) {
+    chomp;
+    my ($name, $value) = ("", "");
+    next if /^(#|;|\s*$)/; # comments, blanks
+    if (s/\[(.*)\]/$section = $1/sie) { # New config section
+        say "Section = $section" if $DEBUG;
+        $section eq "tmux" and last; # TODO
+        $aliases{$section} = ();
+        next;
+    }
+    if (! s/(\w+)\s*=\s*(.*)/($name, $value) = ($1, $2)/se) {
+        say "Invalid line: $_";
+        next;
+    }
+    if ($section =~ /defs/i) {
+        if ($name eq "OUTPUT") {
+            $value =~ s/(~|\$HOME)/$ENV{HOME}/;
+            open($OUTPUT, '>', $value) or die "Could not open file '$value' $!";
+        } elsif ($name eq "BOOKMARK_NNN") {
+            $BOOKMARK_NNN = $value;               
+            say "Set \$$name to $value" if $DEBUG;
+        }
+    } elsif ($section =~ /cmd_templates/i) {
+        $cmd_templates{$name} = $value;
+        say "set template $cmd_templates{$name}" if $DEBUG;
+    } elsif ($section =~ /^tmux/i) {
+        next;
+    } else {
+        say "template = $cmd_templates{$section}" if $DEBUG;
+        my @alias = ($name, $value);
+        push (@{$aliases{$section}}, \@alias);
+        printf($OUTPUT "alias $name=\"$cmd_templates{$section}\"\n", $value);
+    }
+    
+}
+if ($BOOKMARK_NNN) {
+    my $MAX_NNN_ALIASES = 10;
+    say "Setting NNN aliases" if $DEBUG;
+    print($OUTPUT "export NNN_BMS=\"");
+    for my $i (0..($MAX_NNN_ALIASES-1)) {
+        my ($name, $value) = @{shift @{$aliases{"dirs"}}} or last;
+        print($OUTPUT ";") if ($i > 0);
+        print($OUTPUT "$name:$value"); 
+    }
+    print($OUTPUT "\"\n");
+}
+close $OUTPUT;
