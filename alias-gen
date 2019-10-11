@@ -8,57 +8,48 @@ use 5.010;
 
 (($ARGV[0]) && (-f $ARGV[0])) or die "Must specify config\n";
 
-my $BOOKMARK_NNN = 0;
-my $section = "";
-my $OUTPUT;
-my %cmd_templates = ();
-my %aliases = ();
+my $OUTPUT = "$ENV{HOME}/.shortcuts";
 my $DEBUG = 0;
+my $section = "";
+my %config = ();
+my $MAX_NNN_ALIASES = 10;
+my @nnn_aliases = ();
 
 while (<>) {
     chomp;
     my ($name, $value) = ("", "");
     next if /^(#|;|\s*$)/; # comments, blanks
-    if (s/\[(.*)\]/$section = $1/sie) { # New config section
-        say "Section = $section" if $DEBUG;
-        $section eq "tmux" and last; # TODO
-        $aliases{$section} = ();
-        next;
-    }
-    if (! s/(\w+)\s*=\s*(.*)/($name, $value) = ($1, $2)/se) {
+    s/\[(.*)\]/$section = $1/sie and next; # new config section
+    unless (s/(\w+)\s*=\s*(.*)/($name, $value) = ($1, $2)/se) {
         say "Invalid line: $_";
         next;
     }
-    if ($section =~ /defs/i) {
-        if ($name eq "OUTPUT") {
-            $value =~ s/(~|\$HOME)/$ENV{HOME}/;
-            open($OUTPUT, '>', $value) or die "Could not open file '$value' $!";
-        } elsif ($name eq "BOOKMARK_NNN") {
-            $BOOKMARK_NNN = $value;               
-            say "Set \$$name to $value" if $DEBUG;
-        }
-    } elsif ($section =~ /cmd_templates/i) {
-        $cmd_templates{$name} = $value;
-        say "set template $cmd_templates{$name}" if $DEBUG;
-    } elsif ($section =~ /^tmux/i) {
-        next;
-    } else {
-        say "template = $cmd_templates{$section}" if $DEBUG;
-        my @alias = ($name, $value);
-        push (@{$aliases{$section}}, \@alias);
-        printf($OUTPUT "alias $name=\"$cmd_templates{$section}\"\n", $value);
+    $config{$section}{$name} = $value;
+    say "$section: set $name to $value" if $DEBUG;
+    if ($config{"defs"}{"BOOKMARK_NNN"} && $section eq "dirs") {
+        push (@nnn_aliases, "$name:$value") if @nnn_aliases < $MAX_NNN_ALIASES;
     }
-    
 }
-if ($BOOKMARK_NNN) {
-    my $MAX_NNN_ALIASES = 10;
+if ($config{"defs"}{"OUTPUT"}) {
+    ($OUTPUT = $config{"defs"}{"OUTPUT"}) =~ s/(~|\$HOME)/$ENV{HOME}/;
+	say "Writing aliases to $OUTPUT";
+}
+open(my $fs, '>', $OUTPUT) or die "Could not open file '$OUTPUT' $!";
+# Write the main aliases
+foreach my $section ("dirs", "files") {
+	my $template = $config{"cmd_templates"}{$section};
+	foreach my $name (keys %{$config{$section}}) {
+		my $value = $config{$section}{$name};
+		printf($fs "alias $name=\"$template\"\n", $value);
+	}
+}
+if ($config{"defs"}{"BOOKMARK_NNN"}) {
     say "Setting NNN aliases" if $DEBUG;
-    print($OUTPUT "export NNN_BMS=\"");
-    for my $i (0..($MAX_NNN_ALIASES-1)) {
-        my ($name, $value) = @{shift @{$aliases{"dirs"}}} or last;
-        print($OUTPUT ";") if ($i > 0);
-        print($OUTPUT "$name:$value"); 
+    print($fs "export NNN_BMS=\"");
+    for my $i (0..(@nnn_aliases - 1)) {
+        print($fs ";") if ($i > 0);
+        print($fs $nnn_aliases[$i]); 
     }
-    print($OUTPUT "\"\n");
+    print($fs "\"\n");
 }
-close $OUTPUT;
+close $fs;
