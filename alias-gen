@@ -19,14 +19,14 @@ while (<>) {
     chomp;
     my ($name, $value) = ("", "");
     next if /^(#|;|\s*$)/; # comments, blanks
-    s/\[(.*)\]/$section = $1/sie and next; # new config section
+    next if s/\[(.*)\]/$section = $1/sie; # new config section
     unless (s/(\w+)\s*=\s*(.*)/($name, $value) = ($1, $2)/se) {
         say "Invalid line: $_";
         next;
     }
     $config{$section}{$name} = $value;
     say "$section: set $name to $value" if $DEBUG;
-    if ($config{"defs"}{"BOOKMARK_NNN"} && $section eq "dirs") {
+    if ($section eq "dirs" && $config{"defs"}{"BOOKMARK_NNN"}) {
         push (@nnn_aliases, "$name:$value") if @nnn_aliases < $MAX_NNN_ALIASES;
     }
 }
@@ -35,8 +35,7 @@ if ($config{"defs"}{"OUTPUT"}) {
 	say "Writing aliases to $OUTPUT";
 }
 open(my $fs, '>', $OUTPUT) or die "Could not open file '$OUTPUT' $!";
-# Write the main aliases
-foreach my $section ("dirs", "files") {
+foreach my $section (keys %{$config{"cmd_templates"}}) {
 	my $template = $config{"cmd_templates"}{$section};
 	foreach my $name (keys %{$config{$section}}) {
 		my $value = $config{$section}{$name};
