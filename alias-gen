@@ -11,41 +11,47 @@ use 5.010;
 my $OUTPUT = "$ENV{HOME}/.shortcuts";
 my $DEBUG = 0;
 my $section = "";
-my %config = ();
+my $config = ();
 my $MAX_NNN_ALIASES = 10;
 my @nnn_aliases = ();
 
-while (<>) {
+while (<>) 
+{
     chomp;
     my ($name, $value) = ("", "");
     next if /^(#|;|\s*$)/; # comments, blanks
     next if s/\[(.*)\]/$section = $1/sie; # new config section
-    unless (s/(\w+)\s*=\s*(.*)/($name, $value) = ($1, $2)/se) {
+    unless (s/(\w+)\s*=\s*(.*)/($name, $value) = ($1, $2)/se) 
+    {
         say "Invalid line: $_";
         next;
     }
-    $config{$section}{$name} = $value;
+    $config->{$section}->{$name} = $value;
     say "$section: set $name to $value" if $DEBUG;
-    if ($section eq "dirs" && $config{"defs"}{"BOOKMARK_NNN"}) {
+    if ($section eq "dirs" && $config->{"defs"}->{"BOOKMARK_NNN"}) 
+    {
         push (@nnn_aliases, "$name:$value") if @nnn_aliases < $MAX_NNN_ALIASES;
     }
 }
-if ($config{"defs"}{"OUTPUT"}) {
-    ($OUTPUT = $config{"defs"}{"OUTPUT"}) =~ s/(~|\$HOME)/$ENV{HOME}/;
-	say "Writing aliases to $OUTPUT";
+if ($config->{"defs"}->{"OUTPUT"}) 
+{
+    ($OUTPUT = $config->{"defs"}->{"OUTPUT"}) =~ s/(~|\$HOME)/$ENV{HOME}/;
 }
+say "Writing aliases to $OUTPUT";
 open(my $fs, '>', $OUTPUT) or die "Could not open file '$OUTPUT' $!";
-foreach my $section (keys %{$config{"cmd_templates"}}) {
-	my $template = $config{"cmd_templates"}{$section};
-	foreach my $name (keys %{$config{$section}}) {
-		my $value = $config{$section}{$name};
-		printf($fs "alias $name=\"$template\"\n", $value);
-	}
+while (my ($section, $template) = each %{$config->{"cmd_templates"}})
+{
+    while (my ($name,$value) = each %{$config->{$section}}) 
+    {
+        printf($fs "alias $name=\"$template\"\n", $value);
+    }
 }
-if ($config{"defs"}{"BOOKMARK_NNN"}) {
+if ($config->{"defs"}->{"BOOKMARK_NNN"}) 
+{
     say "Setting NNN aliases" if $DEBUG;
     print($fs "export NNN_BMS=\"");
-    for my $i (0..(@nnn_aliases - 1)) {
+    for my $i (0..(@nnn_aliases - 1)) 
+    {
         print($fs ";") if ($i > 0);
         print($fs $nnn_aliases[$i]); 
     }
