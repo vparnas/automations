@@ -1,0 +1,94 @@
+#!/usr/bin/perl
+#
+# (c) 2019 Vitaly Parnas <vp330@parnas.me>
+# See LICENSE for licensing information.
+
+use strict;
+use warnings;
+use 5.010;
+use File::Basename;
+use Data::Dumper;
+
+# TODO
+# ini inline comment ignore
+# shell expansions ('{' '}') don't carry over from the perl context
+# ?Recursive option?
+
+my $DELIM = ';';
+my $CONF_FILE = '.' . basename($0) . '.conf';
+
+sub usage ()
+{
+    say "Usage: $0 [options] <(-t tag) ... | (-s search) ...> <source(s)>";
+    say "   Options:";
+    say "     [-h|--help]   - print this message ";
+    say "     [-d|--debug]  - debug mode, default: no, ";
+    say "     [-n]          - display search comand, don't execute ";
+    say "     [-c|--count]  - display counts of search results of each file only.";
+    exit(1);
+}
+
+sub read_ini 
+{
+    my $ini = shift;
+    my $config;
+    my $section;
+    open(INI, '<', $ini) or die "Could not open file '$ini' $!";
+    while (<INI>) {
+        chomp;
+        next if /^(#|;|\s*$)/; # comments, blanks
+        next if s/\[(.*)\]/$section = $1/sie; # new config section
+        /(.*)\s*=\s*(.*)/ and $config->{$section}->{$1} = $2;
+    }
+    close INI;
+    return $config;
+}
+
+# MAIN
+{
+    my $conf;
+    my (@tags, @searches, @content, @paths, @options);
+    my ($DEBUG, $simulate, $count_matches) = (0,0,0);
+    my $cmd;
+
+    while ($_ = shift) {
+        if (/^(-h|--help)/) { usage(); }
+        elsif (/^(-d|--debug)/) { $DEBUG = 1; }
+        elsif (/^-n/) { $simulate = 1; }
+        elsif (/^(-c|--count)/) { $count_matches = 1; }
+        elsif (/^(-t|--tag)/) { push (@tags, shift); }
+        elsif (/^(-s|--search)/) { push (@searches, shift); }
+        else { push (@content, $_); }
+    }
+    usage() unless (@content && (@searches || @tags));
+    foreach ("$CONF_FILE", $ENV{HOME} . '/' . $CONF_FILE) {
+        if (-e) {
+            say "Using conf $_";
+            $CONF_FILE = $_;
+            last;
+        }
+    }
+    $conf = read_ini($CONF_FILE);
+    foreach (@tags) {
+        my $val = ($conf->{"tags"}->{$_} or $_);
+        push (@searches, split(/$DELIM/, $val));
+    }
+    #push (@paths, split(/$DELIM/, $conf->{"content"}->{$_})) foreach @content;
+    foreach (@content) {
+        my $val = ($conf->{"content"}->{$_} or $_);
+        push (@paths, split(/$DELIM/, $val));
+    }
+    #print Dumper($conf) if $DEBUG;
+    say "Searches: @searches" if $DEBUG;
+    say "Paths @paths" if $DEBUG;
+    while (my ($filter_type, $list) = each %{$conf->{"filters"}}) {
+        push (@options, "--$filter_type '$_'") foreach split(/$DELIM/, $list);
+    }
+    $count_matches and unshift (@options, "-cH");
+    $cmd = "grep -Ei @options -e '" . join('|', @searches) . "' @paths";
+    $count_matches and $cmd .= 
+        " | awk -F':' '{if (\$2 > 0) print \$2 \" : \" \$1}' | sort -n";
+    $cmd .= " | sed 's#$ENV{HOME}#~#'";
+    say ($simulate ? $cmd : qx($cmd));
+    exit(0);
+}
