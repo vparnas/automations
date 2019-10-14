@@ -8,13 +8,16 @@ use warnings;
 use 5.010;
 use File::Basename;
 use Data::Dumper;
+use Term::ANSIColor qw(:constants);
 
 # TODO
 # shell expansions ('{' '}') don't carry over from the perl context
-# ?Recursive tags?
 
 my $DELIM = ';';
 my $CONF_FILE = '.' . basename($0) . '.conf';
+my $COLOR_FILE = YELLOW;
+#my $COLOR_FILE = BRIGHT_MAGENTA;
+my $COLOR_PATTERN = BRIGHT_CYAN;
 my $DEBUG = 0;
 
 sub usage ()
@@ -36,7 +39,7 @@ sub read_ini
     my $ini = shift;
     my $config;
     my $section;
-    open(INI, '<', $ini) or die "Could not open file '$ini' $!";
+    open(INI, '<', $ini) or die "Could not open file '$ini' $!\n";
     while (<INI>) {
         chomp;
         next if /^(#|;|\s*$)/; # comments, blanks
@@ -49,8 +52,8 @@ sub read_ini
 
 sub parse_free_args
 {
-    my ($conf, $params, $searches, $paths) = @_;
-    foreach (@$params) {
+    my ($conf, $free_args, $searches, $paths) = @_;
+    foreach (@$free_args) {
         my $target;
         my $val = $conf->{"content"}->{$_};
         if ($val) {
@@ -65,12 +68,21 @@ sub parse_free_args
     say "Paths @$paths" if $DEBUG;
 }
 
+sub exec_pretty_search
+{
+    my ($cmd, $search_str) = @_;
+    $_ = qx($cmd);
+    s/^[^\s:]+:/sprintf($COLOR_FILE . "%s" . RESET, $&)/egm;
+    s/$search_str/sprintf($COLOR_PATTERN . "%s" . RESET, $&)/eig;
+    say;
+}
+
 # MAIN
 {
     my $conf;
     my (@free_args, @searches, @paths, @grep_options);
     my ($simulate, $count_matches, $recurse, $min_count) = (0,0,0,1);
-    my $cmd;
+    my ($search_str, $cmd);
 
     while ($_ = shift) {
         if (/^(-h|--help)/) { usage(); }
@@ -85,26 +97,25 @@ sub parse_free_args
     foreach ("$CONF_FILE", $ENV{HOME} . '/' . $CONF_FILE) {
         if (-e) {
             say "Using conf $_";
-            $CONF_FILE = $_;
+            $conf = read_ini($_);
             last;
         }
     }
-    $conf = read_ini($CONF_FILE);
-    print Dumper($conf) if $DEBUG;
+    $conf or die "Could not find or open $CONF_FILE\n";
+    #print Dumper($conf) if $DEBUG;
     parse_free_args($conf, \@free_args, \@searches, \@paths);
     while (my ($filter_name, $val) = each %{$conf->{"filters"}}) {
-        if ($filter_name eq "min-count") {
-            $min_count = $val;
-        } else {
-            push (@grep_options, "--$filter_name '$_'")
-                foreach split(/$DELIM/, $val);
+        ($filter_name eq "min-count") and $min_count = $val and next;
+        foreach (split(/$DELIM/, $val)) {
+            push (@grep_options, "--$filter_name '$_'");
         }
     }
     $count_matches and unshift (@grep_options, "-cH");
-    $cmd = "grep -Ei @grep_options -e '" . join('|', @searches) . "' @paths";
+    $search_str = join('|', @searches);
+    $cmd = "grep -Ei @grep_options -e '$search_str' @paths";
     $count_matches and $cmd .= 
         " | awk -F':' '{if (\$2 >= $min_count) printf(\"%4d : %s\\n\", \$2, \$1)}' | sort -n";
     $cmd .= " | sed 's#$ENV{HOME}#~#'"; # strip verbose $HOME path from results
-    say ($simulate ? $cmd : qx($cmd));
+    $simulate ? say($cmd) : exec_pretty_search($cmd, $search_str);
     exit(0);
 }
