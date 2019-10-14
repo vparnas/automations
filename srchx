@@ -20,7 +20,7 @@ my $DEBUG = 0;
 sub usage ()
 {
     say "
-Usage: $0 [options] <search terms or tags> <source(s)>
+Usage: " . basename($0) . " [options] <search terms or tags> <source(s)>
     Options:
       [-h|--help]       - print this message
       [-d|--debug]      - debug mode, default: no,
