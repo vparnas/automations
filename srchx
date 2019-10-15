@@ -10,9 +10,6 @@ use File::Basename;
 use Data::Dumper;
 use Term::ANSIColor qw(:constants);
 
-# TODO
-# shell expansions ('{' '}') don't carry over from the perl context
-
 my $DELIM = ';';
 my $CONF_FILE = '.' . basename($0) . '.conf';
 my $COLOR_FILE = YELLOW;
@@ -23,11 +20,11 @@ my $DEBUG = 0;
 sub usage ()
 {
     say "
-Usage: " . basename($0) . " [options] <search terms or tags> <source(s)>
+Usage: " . basename($0) . " [options] <search terms and/or tags> <source(s)>
     Options:
-      [-h|--help]       - print this message
-      [-d|--debug]      - debug mode, default: no,
-      [-n|--no-act]     - display search comand, don't execute
+      [-h|--help]       - print this message.
+      [-d|--debug]      - debug mode, default: no.
+      [-n|--no-act]     - display search command, do not execute.
       [-c|--count]      - display counts of search results of each file only.
       [-r|--recursive]  - recurse into directories.
 ";
@@ -59,7 +56,7 @@ sub parse_free_args
         if ($val) {
             $target = $paths;
         } else {
-            $val = ($conf->{"tags"}->{$_} or $_);
+            $val = ($conf->{"terms"}->{$_} or $_);
             $target = $searches;
         }
         push (@$target, split(/$DELIM/, $val));
@@ -74,6 +71,7 @@ sub exec_pretty_search
     $_ = qx($cmd);
     s/^[^\s:]+:/sprintf($COLOR_FILE . "%s" . RESET, $&)/egm;
     s/$search_str/sprintf($COLOR_PATTERN . "%s" . RESET, $&)/eig;
+    s#$ENV{HOME}#~#g; # strip verbose $HOME path from results
     say;
 }
 
@@ -81,13 +79,13 @@ sub exec_pretty_search
 {
     my $conf;
     my (@free_args, @searches, @paths, @grep_options);
-    my ($simulate, $count_matches, $recurse, $min_count) = (0,0,0,1);
+    my ($no_act, $count_matches, $recurse, $min_count) = (0,0,0,1);
     my ($search_str, $cmd);
 
     while ($_ = shift) {
         if (/^(-h|--help)/) { usage(); }
         elsif (/^(-d|--debug)/) { $DEBUG = 1; }
-        elsif (/^(-n|--no-act)/) { $simulate = 1; }
+        elsif (/^(-n|--no-act)/) { $no_act = 1; }
         elsif (/^(-c|--count)/) { $count_matches = 1; }
         elsif (/^(-r|--recursive)/) { $recurse = 1;}
         else { push (@free_args, $_); }
@@ -113,9 +111,10 @@ sub exec_pretty_search
     $count_matches and unshift (@grep_options, "-cH");
     $search_str = join('|', @searches);
     $cmd = "grep -Ei @grep_options -e '$search_str' @paths";
-    $count_matches and $cmd .= 
-        " | awk -F':' '{if (\$2 >= $min_count) printf(\"%4d : %s\\n\", \$2, \$1)}' | sort -n";
-    $cmd .= " | sed 's#$ENV{HOME}#~#'"; # strip verbose $HOME path from results
-    $simulate ? say($cmd) : exec_pretty_search($cmd, $search_str);
+    if ($count_matches) {
+        $cmd .= " | awk -F':' '{if (\$2 >= $min_count) " . 
+        "printf(\"%4d : %s\\n\", \$2, \$1)}' | sort -n";
+    }
+    $no_act ? say($cmd) : exec_pretty_search($cmd, $search_str);
     exit(0);
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 #
 # (c) 2019 Vitaly Parnas <vp330@parnas.me>
+# See LICENSE for licensing information.
 
 use strict;
 use warnings;
@@ -46,11 +47,6 @@ while (my ($section, $template) = each %{$config->{"cmd_templates"}})
 if ($config->{"defs"}->{"BOOKMARK_NNN"}) 
 {
     say "Setting NNN aliases" if $DEBUG;
-    print($fs "export NNN_BMS=\"");
-    for my $i (0..(@nnn_aliases - 1)) {
-        print($fs ";") if ($i > 0);
-        print($fs $nnn_aliases[$i]); 
-    }
-    print($fs "\"\n");
+    say($fs "export NNN_BMS=\"" . join(';', @nnn_aliases) . "\"");
 }
 close $fs;
