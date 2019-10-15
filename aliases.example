@@ -1,0 +1,48 @@
+[defs]
+OUTPUT = $HOME/.shortcuts
+BOOKMARK_NNN = 1
+
+[cmd_templates]
+dirs = cd %s && ls -tra
+files = $EDITOR %s
+; Create a new tmux named window and run command. If already exists, select.
+tmux_sessions = arg=%s && tmux select-window -t \"\$arg\" >/dev/null 2>&1 || tmux new-window -n \"\$arg\" \; send-keys \"\$arg\" C-m \"vim '+:call LoadSession()'\" C-m
+
+[dirs]
+w = ~/work
+a = ~/work/automations
+b = ~/my_blog
+d = ~/Documents
+r = ~/Documents/Research
+n = ~/notes
+l = ~/notes/Linux
+i = ~/notes/ideas
+c = ~/work/coding
+m = ~/.config/mutt
+M = ~/Music
+
+[files]
+; Configs
+cfa = ~/.aliases
+cfA	= ~/.config/awesome/rc.lua
+cfb	= ~/.bashrc
+cfj = ~/.jrnl2.rc
+cfm	= ~/.config/mutt/muttrc
+cfp = ~/.profile
+cfs = ~/.config/sxhkd/sxhkdrc
+cfS = ~/.ssh/config
+cfsr = ~/.srchx.conf
+cft = ~/.tmux.conf
+cfv	= ~/.vimrc
+cfw = ~/.w3m/config
+cfW = ~/.w3m/keymap
+; Notes
+nn  = $NNN_NOTE
+nrl = ~/notes/reading_list.md
+nsh = ~/notes/shorthand/shorthand.txt
+
+[tmux_sessions]
+ta = a
+tb = b
+
+; vi: ft=dosini :

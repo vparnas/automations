@@ -1,0 +1,17 @@
+[terms]
+dev=linux;shell;sed;awk;vim;perl;lisp
+success=journal;focus;priorities;nutrition;health
+philosophy=stoic;open source
+
+[content]
+notes=~/.notes;~/journal.txt;~/work/notes/*;~/work/notes/Linux/*
+bookmarks=~/.w3m/bookmark.html
+calendar=~/.calcurse/apts;~/.calcurse/notes/*
+blog=~/blog/web/posts
+
+[filters]
+exclude=*.pdf;*.png;*.jpg;*.gif
+#max-count=4
+min-count=1 # Applies strictly to the -c (count-only) option
+
+; vim: ft=dosini :
