@@ -11,7 +11,7 @@ Search disparate text content more powerfully.
 
 ### Usage
 
-1. Place `.srchx.conf` either in the current or your home directory. See the provided example conf for the layout. The below examples appeal to this config.
+1. Place `.srchx.conf` either in the current or your home directory, or ~/.config/srchx.conf directory. See the provided example conf for the layout. The below examples appeal to this config.
 1. Place `srchx` somewhere in your path.
 
 Run `srchx` with no arguments to display the command line parameters.

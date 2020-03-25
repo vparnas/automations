@@ -6,7 +6,7 @@ BOOKMARK_NNN = 1
 dirs = cd %s && ls -tra
 files = $EDITOR %s
 ; Create a new tmux named window and run command. If already exists, select.
-tmux_sessions = arg=%s && tmux select-window -t \"\$arg\" >/dev/null 2>&1 || tmux new-window -n \"\$arg\" \; send-keys \"\$arg\" C-m \"vim '+:call LoadSession()'\" C-m
+tmux_sessions = arg=%s && tmux select-window -t \"=\$arg\" >/dev/null 2>&1 || tmux new-window -n \"\$arg\" \; send-keys \"\$arg\" C-m \"vim '+:call LoadSession()'\" C-m
 
 [dirs]
 w = ~/work

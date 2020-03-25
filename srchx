@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# (c) 2019 Vitaly Parnas <vp330@parnas.me>
+# (c) 2019-2020 Vitaly Parnas <vp330@parnas.me>
 # See LICENSE for licensing information.
 
 use strict;
@@ -11,7 +11,7 @@ use Data::Dumper;
 use Term::ANSIColor qw(:constants);
 
 my $DELIM = ';';
-my $CONF_FILE = '.' . basename($0) . '.conf';
+my $CONF_FILE = basename($0) . '.conf';
 my $COLOR_FILE = YELLOW;
 #my $COLOR_FILE = BRIGHT_MAGENTA;
 my $COLOR_PATTERN = BRIGHT_CYAN;
@@ -92,7 +92,8 @@ sub exec_pretty_search
     }
     usage() unless (@free_args);
     push (@grep_options, $recurse ? "-r" : "--exclude-dir=/*");
-    foreach ("$CONF_FILE", $ENV{HOME} . '/' . $CONF_FILE) {
+    foreach (".$CONF_FILE", "$ENV{HOME}/.$CONF_FILE", 
+        "$ENV{HOME}/.config/$CONF_FILE") {
         if (-e) {
             say "Using conf $_";
             $conf = read_ini($_);
