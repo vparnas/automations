@@ -9,7 +9,7 @@ use 5.010;
 
 (($ARGV[0]) && (-f $ARGV[0])) or die "Must specify config\n";
 
-my $OUTPUT = "$ENV{HOME}/.config/shortcuts";
+my $OUTPUT = "$ENV{HOME}/shortcuts";
 my $DEBUG = 0;
 my $section = "";
 my $config = ();
