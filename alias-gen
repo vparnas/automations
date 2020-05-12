@@ -13,7 +13,7 @@ my $OUTPUT = "$ENV{HOME}/shortcuts";
 my $DEBUG = 0;
 my $section = "";
 my $config = ();
-my $MAX_NNN_ALIASES = 10;
+my $MAX_NNN_ALIASES = 20;
 my @nnn_aliases = ();
 
 while (<>) 
@@ -29,7 +29,7 @@ while (<>)
     $config->{$section}->{$name} = $value;
     say "$section: set $name to $value" if $DEBUG;
     if ($section eq "dirs" && $config->{"defs"}->{"BOOKMARK_NNN"}) {
-        push (@nnn_aliases, "$name:$value") if @nnn_aliases < $MAX_NNN_ALIASES;
+        push (@nnn_aliases, "$name:$value") if @nnn_aliases < $MAX_NNN_ALIASES and length $name == 1;
     }
 }
 if ($config->{"defs"}->{"OUTPUT"}) 
