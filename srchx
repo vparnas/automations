@@ -22,11 +22,12 @@ sub usage ()
     say "
 Usage: " . basename($0) . " [options] <search terms and/or tags> <source(s)>
     Options:
-      [-h|--help]       - print this message.
-      [-d|--debug]      - debug mode, default: no.
-      [-n|--no-act]     - display search command, do not execute.
-      [-c|--count]      - display counts of search results of each file only.
-      [-r|--recursive]  - recurse into directories.
+      [-h|--help]           - print this message.
+      [-d|--debug]          - debug mode, default: no.
+      [-n|--no-act]         - display search command, do not execute.
+      [-c|--count]          - display counts of search results of each file only.
+      [-r|--recursive]      - recurse into directories.
+      [-s|--suppress-err]   - ignore missing files.
 ";
     exit(1);
 }
@@ -79,7 +80,7 @@ sub exec_pretty_search
 {
     my $conf;
     my (@free_args, @searches, @paths, @grep_options);
-    my ($no_act, $count_matches, $recurse, $min_count) = (0,0,0,1);
+    my ($no_act, $count_matches, $recurse, $min_count, $suppress_err) = (0,0,0,1,0);
     my ($search_str, $cmd);
 
     while ($_ = shift) {
@@ -88,10 +89,12 @@ sub exec_pretty_search
         elsif (/^(-n|--no-act)/) { $no_act = 1; }
         elsif (/^(-c|--count)/) { $count_matches = 1; }
         elsif (/^(-r|--recursive)/) { $recurse = 1;}
+        elsif (/^(-s|--suppress-err)/) { $suppress_err = 1;}
         else { push (@free_args, $_); }
     }
     usage() unless (@free_args);
     push (@grep_options, $recurse ? "-r" : "--exclude-dir=/*");
+    push (@grep_options, "--no-messages") if $suppress_err;
     foreach (".$CONF_FILE", "$ENV{HOME}/.$CONF_FILE", 
         "$ENV{HOME}/.config/$CONF_FILE") {
         if (-e) {
