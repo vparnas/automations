@@ -4,14 +4,13 @@ CFG_FILE="$HOME/.tmux_sessions"
 [ -f "$CFG_FILE" ] || (echo "$CFG_FILE not found" && exit)
 
 # Create or attach to the named session if exists
-# Will fail if already in tmux
 tmux new-session -s main -d >/dev/null 2>&1 
 
 sed '/^\s*#/d' "$CFG_FILE" |
 while read -r win_name win_dir command; do
-	win_dir=$(eval echo "$win_dir")
-	tmux select-window -t "$win_name" >/dev/null 2>&1 ||\
-		tmux new-window -c "$win_dir" -n "$win_name" \; \
-		send-keys "$command" C-m
+    win_dir=$(eval echo "$win_dir") # allows evaluating '~' or $HOME
+    tmux select-window -t "$win_name" >/dev/null 2>&1 ||
+        tmux new-window -c "$win_dir" -n "$win_name" \; \
+        send-keys "$command" C-m
 done
 [ -z "$TMUX" ] && tmux attach-session -t main
